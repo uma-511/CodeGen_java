@@ -4,7 +4,7 @@
 
     <groupId>com.warrior.gen</groupId>
     <artifactId>CodeGen</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0</version>
     <packaging>jar</packaging>
 
     <name>CodeGen</name>
@@ -56,16 +56,16 @@
     </dependencies>
 
     <build>
-        <resources>
-            <resource>
-                <directory>src/resources</directory>
-                <targetPath>${project.build.directory}</targetPath>
-                <includes>
-                    <include>template/*</include>
-                    <include>config.json</include>
-                </includes>
-            </resource>
-        </resources>
+        <!--<resources>-->
+            <!--<resource>-->
+                <!--<directory>src/main/resources</directory>-->
+                <!--<targetPath>${project.build.directory}</targetPath>-->
+                <!--<includes>-->
+                    <!--<include>template/*</include>-->
+                    <!--<include>config.json</include>-->
+                <!--</includes>-->
+            <!--</resource>-->
+        <!--</resources>-->
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -95,6 +95,27 @@
                         <configuration>
                             <outputDirectory>${project.build.directory}/lib</outputDirectory>
                         </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <!-- not append assembly id in release file name -->
+                    <appendAssemblyId>false</appendAssemblyId>
+                    <descriptors>
+                        <!--打包的详细描述，需要配置额外文件-->
+                        <descriptor>src/main/build/package.xml</descriptor>
+                    </descriptors>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>
