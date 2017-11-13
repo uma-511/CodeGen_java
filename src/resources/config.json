@@ -1,0 +1,31 @@
+{
+  "driverClass":"com.mysql.jdbc.Driver",
+  "url":"jdbc:mysql://10.211.55.5:3306/warrior?useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull",
+  "userName":"root",
+  "passWord":"123456",
+  "prefix":"warrior_",
+  "viewPath":"/Users/rookie/Workspace/CodeRepository/ManageSystem/com.warrior.view/views/src/views",
+  "tableList":[
+    {
+      "tableName":"warrior_test",
+      "path":"/Users/rookie/Workspace/CodeRepository/ManageSystem/com.warrior.test",
+      "packageName":"com.warrior.test",
+      "remark":"测试信息",
+      "query":[
+        {
+          "name":"name",
+          "remark":"用户名",
+          "defaultValue":""
+        },
+        {
+          "name":"create_time",
+          "remark":"创建时间",
+          "defaultValue":""
+        }
+      ],
+      "noShow":"id,",
+      "noEdit":"id,create_time,",
+      "swagger":true
+    }
+  ]
+}
