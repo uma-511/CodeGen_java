@@ -38,6 +38,12 @@ public class TableInfo implements Serializable {
     private String entityName;
 
     @Setter @Getter
+    private String scriptPath;
+
+    @Getter @Setter
+    private boolean genView;
+
+    @Setter @Getter
     private List<String> importList = new ArrayList<>();
 
     @Setter @Getter

@@ -28,5 +28,4 @@ public class Config implements Serializable{
 
     @Getter @Setter
     private String viewPath;
-
 }

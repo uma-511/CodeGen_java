@@ -1,15 +1,14 @@
 package com.warrior.gen;
 
-import com.google.gson.Gson;
 import com.warrior.gen.database.DBHelper;
 import com.warrior.gen.exception.GenException;
 import com.warrior.gen.model.*;
-import com.warrior.gen.util.NameUtil;
+import com.warrior.gen.util.FileUtil;
+import com.warrior.gen.util.GroovyUtil;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import freemarker.template.TemplateExceptionHandler;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 
 import java.io.*;
@@ -26,24 +25,12 @@ public class CodeGen {
     private DBHelper dbHelper;
     private Configuration cfg;
 
-    public static void main(String args []) throws IOException{
-        CodeGen codeGen = new CodeGen();
-        String configPath = codeGen.getRunPath();
-        configPath = StringUtils.isEmpty(configPath) ? System.getProperty("user.dir")+"/src/resources/config.json" : configPath+"config.json";
-        String json = FileUtils.readFileToString(new File(configPath),"UTF-8");
-        Config config = new Gson().fromJson(json,Config.class);
-
-        codeGen.genCode(config);
-    }
-
     public void genCode(Config config){
         try {
             dbHelper = DBHelper.getInstance(config);
             this.config = config;
             cfg = new Configuration(Configuration.VERSION_2_3_26);
-            String rootPath = getRunPath();
-            rootPath = StringUtils.isEmpty(rootPath) ? System.getProperty("user.dir")+"/src/resources/template" : rootPath+"template";
-
+            String rootPath = getRunPath("template");
             cfg.setDirectoryForTemplateLoading(new File(rootPath));
             cfg.setDefaultEncoding("UTF-8");
             cfg.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
@@ -59,8 +46,10 @@ public class CodeGen {
                     genService(table);
                     genServiceImpl(table);
                     genController(table);
-                    genView(table,meta);
-                    dbHelper.insert(NameUtil.getCamelCaseName(table.getEntityName(),true),table.getRemark());
+                    if (table.isGenView()){
+                        genView(table,meta);
+                    }
+                    execScript(table,table.getScriptPath());
                 }
             }
         } catch (IOException e) {
@@ -72,12 +61,21 @@ public class CodeGen {
         }
     }
 
+    private void execScript(TableInfo table,String scriptName) throws IOException{
+        GroovyUtil groovyUtil = GroovyUtil.getInstance();
+        String scriptPath = getRunPath("script/"+scriptName);
+        groovyUtil.loadScript(scriptPath);
+        groovyUtil.addParam("tableInfo",table);
+        groovyUtil.addParam("dbHelper",dbHelper);
+        groovyUtil.addParam("viewPath",config.getViewPath());
+        groovyUtil.runScript();
+    }
     private void genView(TableInfo table,TableMeta meta)  throws IOException,TemplateException{
-        String name = NameUtil.getCamelCaseName(table.getEntityName(),true);
+        String name = FileUtil.getCamelCaseName(table.getEntityName(),true);
         String filePath = getPath(config.getViewPath())+File.separator+name;
 
         Map<String,Object> root = new HashMap<>();
-        root.put("primaryKey",NameUtil.getCamelCaseName(meta.getPrimaryKey(),true));
+        root.put("primaryKey", FileUtil.getCamelCaseName(meta.getPrimaryKey(),true));
         root.put("name",name);
         root.put("remark",table.getRemark());
         root.put("args",table.getAttrs());
@@ -92,7 +90,6 @@ public class CodeGen {
         }
         genFile("view.ftl",new File(dir,"index.vue"),root);
     }
-
     private void genController(TableInfo table) throws IOException,TemplateException{
         String packagePath = (table.getPackageName() + ".controller").replace(".","/");
         String classPath = getPath(table.getPath()) + File.separator +"src/main/java/"+packagePath;
@@ -107,7 +104,7 @@ public class CodeGen {
         root.put("packageName",table.getPackageName());
         root.put("entityName",table.getEntityName());
         root.put("className",className);
-        root.put("name",NameUtil.getCamelCaseName(table.getEntityName(),true));
+        root.put("name", FileUtil.getCamelCaseName(table.getEntityName(),true));
         root.put("swagger",table.getSwagger());
         root.put("remark",table.getRemark());
         root.put("args",table.getAttrs());
@@ -118,7 +115,6 @@ public class CodeGen {
         }
         genFile("controller.ftl",new File(dir,className+".java"),root);
     }
-
     private void genServiceImpl(TableInfo table) throws IOException,TemplateException{
         String packagePath = (table.getPackageName() + ".service.impl").replace(".","/");
         String classPath = getPath(table.getPath()) + File.separator +"src/main/java/"+packagePath;
@@ -144,7 +140,6 @@ public class CodeGen {
         }
         genFile("serviceImpl.ftl",new File(dir,className+".java"),root);
     }
-
     private void genService(TableInfo table) throws IOException,TemplateException{
         String packagePath = (table.getPackageName() + ".service").replace(".","/");
         String classPath = getPath(table.getPath()) + File.separator +"src/main/java/"+packagePath;
@@ -183,7 +178,6 @@ public class CodeGen {
         }
         genFile("mapper.ftl",new File(dir,className),root);
     }
-
     private void genDao(TableInfo tableInfo) throws IOException,TemplateException{
         String packagePath = (tableInfo.getPackageName() + ".dao").replace(".","/");
         String classPath = getPath(tableInfo.getPath()) + File.separator +"src/main/java/"+packagePath;
@@ -199,12 +193,11 @@ public class CodeGen {
         }
         genFile("dao.ftl",new File(dir,className+".java"),root);
     }
-
     private void genEntity(TableInfo tableInfo, TableMeta meta) throws IOException,TemplateException{
         boolean hasPerfix = StringUtils.isBlank(config.getPrefix()) ? false : true;
         String packagePath = (tableInfo.getPackageName() + ".entity").replace(".","/");
         String classPath = getPath(tableInfo.getPath()) + File.separator +"src/main/java/"+packagePath;
-        String className = NameUtil.getCamelCaseName(
+        String className = FileUtil.getCamelCaseName(
                 hasPerfix ? tableInfo.getTableName().replace(config.getPrefix(),"") : tableInfo.getTableName()
                 ,false);
         tableInfo.setEntityName(className);
@@ -226,8 +219,8 @@ public class CodeGen {
         QueryParam param = null;
         for (Attribute attr : attrs){
             temp = hasPerfix ?
-                    NameUtil.getCamelCaseName(attr.getName().replace(config.getPrefix(),""),true) :
-                    NameUtil.getCamelCaseName(attr.getName(),true);
+                    FileUtil.getCamelCaseName(attr.getName().replace(config.getPrefix(),""),true) :
+                    FileUtil.getCamelCaseName(attr.getName(),true);
             param = tableInfo.getParam(attr.getName());
             if(param != null && StringUtils.equals(attr.getName(),param.getName())){
                 tableInfo.getAttrs().add(new Attribute(attr.getType(),temp,attr.getName(),param.getDefaultValue(),param.getRemark()));
@@ -242,7 +235,6 @@ public class CodeGen {
 
         genFile("entity.ftl",new File(dir,className+".java"),root);
     }
-
     private void genFile(String templateName,File file,Map<String,Object> root) throws IOException,TemplateException{
         Template tpl = cfg.getTemplate(templateName);
         OutputStream fos = new FileOutputStream(file);
@@ -256,13 +248,14 @@ public class CodeGen {
     private String getPath(String path){
         return StringUtils.isEmpty(path) ? System.getProperty("user.dir") : path;
     }
-
-    private String getRunPath() throws IOException{
+    public String getRunPath(String fileOrfolder) throws IOException {
         String path = null;
         URL url = this.getClass().getProtectionDomain().getCodeSource().getLocation();
         if (StringUtils.endsWith(url.getPath(),".jar")){
             path = URLDecoder.decode(url.getPath(),"UTF-8");
-            path = path.substring(0,path.lastIndexOf("/")+1);
+            path = path.substring(0,path.lastIndexOf("/")+1)+fileOrfolder;
+        }else{
+            path = this.getClass().getClassLoader().getResource(fileOrfolder).getPath();
         }
         return path;
     }

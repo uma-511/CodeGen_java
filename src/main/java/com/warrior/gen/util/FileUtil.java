@@ -1,6 +1,6 @@
 package com.warrior.gen.util;
 
-public class NameUtil {
+public class FileUtil {
 
     public static String getCamelCaseName(String name,boolean isField){
         String [] names = name.split("_");

@@ -25,7 +25,9 @@
       ],
       "noShow":"id,",
       "noEdit":"id,create_time,",
-      "swagger":true
+      "swagger":true,
+      "genView":false,
+      "scriptPath":"warrior.groovy"
     }
   ]
 }

@@ -2,8 +2,13 @@ package com.warrior.gen.database;
 
 import com.warrior.gen.model.Config;
 import com.warrior.gen.model.TableMeta;
+import org.codehaus.groovy.runtime.GStringImpl;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class DBHelper {
 
@@ -51,64 +56,46 @@ public class DBHelper {
         return tableMeta;
     }
 
-    public void insert(String name,String remark) {
+
+    public void setAutoCommit(boolean autoCommit){
+        try {
+            connection.setAutoCommit(autoCommit);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    public void rollback(){
+        try {
+            connection.rollback();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    public void commit(){
+        try {
+            connection.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    public int insert(String sql,Object ... params){
         PreparedStatement pstmt = null;
         ResultSet rs = null;
+        int id =0;
         try {
-            connection.setAutoCommit(false);
-            String sql = "SELECT res_id FROM warrior_resources WHERE res_name = ? AND permission = ?";
-            pstmt = connection.prepareStatement(sql);
-            pstmt.setObject(1,remark);
-            pstmt.setObject(2,"admin:"+name+":view");
-            rs = pstmt.executeQuery();
-            if(rs.next()){
-                pstmt = connection.prepareStatement("DELETE FROM warrior_resources WHERE res_name = ? AND permission = ?");
-                pstmt.setObject(1,remark);
-                pstmt.setObject(2,"admin:"+name+":view");
-                pstmt.executeUpdate();
-                pstmt = connection.prepareStatement("DELETE FROM warrior_resources WHERE parent_id = ?");
-                pstmt.setObject(1,rs.getInt(1));
-                pstmt.executeUpdate();
-            }
-
-            sql = "INSERT INTO warrior_resources (res_name,parent_id,url,sort,is_show,remark,status,create_time,update_time,permission,icon,type) VALUES (?,0,?,1,0,'',0,now(),now(),?,'briefcase',0)";
             pstmt = connection.prepareStatement(sql,PreparedStatement.RETURN_GENERATED_KEYS);
-            pstmt.setObject(1,remark);
-            pstmt.setObject(2,"/"+name+"/list");
-            pstmt.setObject(3,"admin:"+name+":view");
-            if(pstmt.executeUpdate() > 0){
+            if (params != null && params.length > 0){
+                for (int i=0,j=params.length;i<j;i++){
+                    pstmt.setObject(i+1,params[i] instanceof GStringImpl ? params[i].toString() : params[i]);
+                }
+            }
+            if (pstmt.executeUpdate() > 0){
                 rs = pstmt.getGeneratedKeys();
                 rs.next();
-                int id = rs.getInt(1);
-                if (id > 0){
-                    sql = "INSERT INTO warrior_resources (res_name,parent_id,url,sort,is_show,remark,status,create_time,update_time,permission,icon,type) " +
-                            "SELECT ?,?,'',0,0,'',0,now(),now(),?,'',1 UNION " +
-                            "SELECT ?,?,'',0,0,'',0,now(),now(),?,'',1 UNION " +
-                            "SELECT ?,?,'',0,0,'',0,now(),now(),?,'',1 ";
-                    pstmt = connection.prepareStatement(sql);
-                    pstmt.setObject(1,"添加");
-                    pstmt.setObject(2,id);
-                    pstmt.setObject(3,"admin:"+name+":add");
-                    pstmt.setObject(4,"修改");
-                    pstmt.setObject(5,id);
-                    pstmt.setObject(6,"admin:"+name+":update");
-                    pstmt.setObject(7,"删除");
-                    pstmt.setObject(8,id);
-                    pstmt.setObject(9,"admin:"+name+":del");
-                    if(pstmt.executeUpdate() > 0){
-                        connection.commit();
-                    }else{
-                        connection.rollback();
-                    }
-                }
+                id = rs.getInt(1);
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            try {
-                connection.rollback();
-            } catch (SQLException e1) {
-                e1.printStackTrace();
-            }
         } finally {
             try {
                 rs.close();
@@ -117,5 +104,97 @@ public class DBHelper {
                 e.printStackTrace();
             }
         }
+        return id;
+    }
+
+    public boolean executeSql(String sql,Object ... params){
+        PreparedStatement pstmt = null;
+        int ret = -1;
+        try {
+            pstmt = connection.prepareStatement(sql);
+            if (params != null && params.length > 0){
+                for (int i=0,j=params.length;i<j;i++){
+                    pstmt.setObject(i+1,params[i] instanceof GStringImpl ? params[i].toString() : params[i]);
+                }
+            }
+            ret = pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                pstmt.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return ret > 0;
+    }
+
+    public List<Map<String,Object>> query(String sql,Object ... params){
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        List<Map<String,Object>> dataList = new ArrayList<>();
+        try {
+            pstmt = connection.prepareStatement(sql);
+            if (params != null && params.length > 0){
+                for (int i=0,j=params.length;i<j;i++){
+                    pstmt.setObject(i+1,params[i] instanceof GStringImpl ? params[i].toString() : params[i]);
+                }
+            }
+            rs = pstmt.executeQuery();
+            ResultSetMetaData metaData = rs.getMetaData();
+            Map<String,Object> data = null;
+            int count = metaData.getColumnCount();
+            while (rs.next()){
+                data = new HashMap<>();
+                for (int i =0;i<count;i++){
+                    data.put(metaData.getColumnName(i+1),rs.getObject(i+1));
+                }
+                dataList.add(data);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                rs.close();
+                pstmt.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return dataList;
+    }
+
+    public Map<String,Object> querySingle(String sql,Object ... params){
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        Map<String,Object> data = null;
+        try {
+            pstmt = connection.prepareStatement(sql);
+            if (params != null && params.length > 0){
+                for (int i=0,j=params.length;i<j;i++){
+                    pstmt.setObject(i+1,params[i] instanceof GStringImpl ? params[i].toString() : params[i]);
+                }
+            }
+            rs = pstmt.executeQuery();
+            ResultSetMetaData metaData = rs.getMetaData();
+            int count = metaData.getColumnCount();
+            if(rs.next()){
+                data = new HashMap<>();
+                for (int i =0;i<count;i++){
+                    data.put(metaData.getColumnName(i+1),rs.getObject(i+1));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                rs.close();
+                pstmt.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return data;
     }
 }
