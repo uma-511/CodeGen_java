@@ -1,17 +1,5 @@
-<style scoped>
-    .layout-content{
-        min-height: 400px;
-        margin: 10px;
-        overflow: hidden;
-        background: #fff;
-        border-radius: 4px;
-    }
-    .layout-content-main{
-        padding: 5px;
-    }
-    .layout-tools{
-        padding-bottom:5px;
-    }
+<style scoped lang="less">
+@import '../../styles/common.less';
 </style>
 <template>
     <div class="layout-content">
@@ -35,7 +23,7 @@
                 </div>
                 <Row style="margin-top: 10px;">
                     <Col span="24">
-                    <Button type="primary" size="small" icon="plus" @click="addItem()" v-if="checkPermission('admin:${name}:add')">新增</Button>
+                    <permissionButton type="primary" size="small" icon="plus" v-on:increment="addItem()" perStr="admin:${name}:add" text="新增"></permissionButton>
                     </Col>
                 </Row>
             </div>
@@ -82,7 +70,11 @@
 
 <script>
     import util from '../../libs/util';
+    import permissionButton from '../main_components/button'
     export default{
+        components:{
+            permissionButton
+        },
         data(){
             return {
                 addOrUpdate:'add',
@@ -111,32 +103,32 @@
                     </#list>
                     { title:'操作',key:'${primaryKey}',align:'center',width:180,render:(h,params)=>{
                         return h('div',[
-                            this.checkPermission('admin:${name}:update') ?
-                            h('Button',{
-                                props:{type:'primary',size:'small'},
+                            h(permissionButton,{
+                                props:{type:'primary',size:'small',perStr:'admin:${name}:update',text:'修改'},
                                 style:{marginRight:'5px'},
-                                on:{click:()=>{
+                                on:{increment:()=>{
                                     this.showModel = true;
                                     this.modelTitle = '修改${remark}';
                                     this.addOrUpdate = 'update';
                                     util.ajax.get('/${name}/'+params.row.${primaryKey})
                                             .then(rep => {
-                                                this.formInline.${primaryKey} = rep.${primaryKey};
-                                                <#list attrs as attr>
-                                                <#if attr.edit>
-                                                this.formInline.${attr.name} = rep.${attr.name};
-                                                </#if>
-                                                </#list>
+                                                if(rep.code==0){
+                                                    this.formInline.${primaryKey} = rep.data.${primaryKey};
+                                                    <#list attrs as attr>
+                                                    <#if attr.edit>
+                                                    this.formInline.${attr.name} = rep.data.${attr.name};
+                                                    </#if>
+                                                    </#list>
+                                                }
                                             });
                                 }}
-                            },'修改') : h('Span',{},''),
-                            this.checkPermission('admin:${name}:del') ?
-                                    h('Button',{
-                                        props:{type:'error',size:'small'},
-                                        on:{click:()=>{
-                                            this.delItem(params.row.${primaryKey});
-                                        }}
-                                    },'删除') : h('Span',{},'')
+                            }),
+                            h(permissionButton,{
+                                props:{type:'error',size:'small',perStr:'admin:${name}:del',text:'删除'},
+                                on:{increment:()=>{
+                                    this.delItem(params.row.${primaryKey});
+                                }}
+                            })
                         ]);
                     }}
                 ],
@@ -174,8 +166,10 @@
                         rows:this.pageSize
                     }
                 }).then(rep=>{
-                    this.data = rep.records;
-                    this.total = rep.total;
+                    if(rep.code == 0){
+                        this.data = rep.data.records;
+                        this.total = rep.data.total;
+                    }
                 });
             },
             addItem(){
@@ -189,8 +183,8 @@
                     content:'确认删除当前数据？',
                     onOk:()=>{
                         util.ajax.delete('/${name}/'+id).then(rep =>{
-                            this.$Message.info(rep.success ? '删除数据成功！' : '删除数据失败！');
-                            if(rep.success){
+                            this.$Message.info(rep.code==0 ? '删除数据成功！' : '删除数据失败！');
+                            if(rep.code==0){
                                if(this.data.length == 1){
                                    this.page = this.page - 1;
                                }
@@ -219,7 +213,7 @@
                         if(this.addOrUpdate === 'add'){
                             util.ajax.post('/${name}',this.formInline)
                                     .then(rep=>{
-                                        this.$Message.info('保存数据成功！');
+                                        if(rep.code==0){this.$Message.info('保存数据成功！');}
                                         this.query();
                                         this.$refs['form-${name}'].resetFields();
                                         this.isSaveing = false;
@@ -227,7 +221,7 @@
                                     });
                         }else{
                             util.ajax.put('/${name}',this.formInline).then(rep=>{
-                                this.$Message.info('保存数据成功！');
+                                if(rep.code==0){this.$Message.info('保存数据成功！');}
                                 this.query();
                                 this.$refs['form-${name}'].resetFields();
                                 this.isSaveing = false;
@@ -236,13 +230,6 @@
                         }
                     }
                 });
-            },
-            checkPermission(perStr){
-                let str = this.$store.getters.getPerStr.perStr;
-                if (str == undefined || str==='') {
-                    return false;
-                }
-                return str.indexOf(perStr) >= 0 ? true : false;
             }
         }
     }
