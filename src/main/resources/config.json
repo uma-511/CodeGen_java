@@ -8,26 +8,18 @@
   "tableList":[
     {
       "tableName":"warrior_test",
-      "path":"/Users/rookie/Workspace/CodeRepository/ManageSystem/com.warrior.test",
-      "packageName":"com.warrior.test",
-      "remark":"测试信息",
+      "path":"/Users/rookie/Workspace/CodeRepository/ManageSystem/com.warrior.attachment",
+      "packageName":"com.warrior.attachment",
+      "remark":"附件信息",
       "query":[
-        {
-          "name":"name",
-          "remark":"用户名",
-          "defaultValue":""
-        },
-        {
-          "name":"create_time",
-          "remark":"创建时间",
-          "defaultValue":""
-        }
+
       ],
-      "noShow":"id,",
-      "noEdit":"id,create_time,",
+      "noShow":"",
+      "noEdit":"",
       "swagger":true,
+      "genCode":true,
       "genView":false,
-      "scriptPath":"warrior.groovy"
+      "scriptPath":""
     }
   ]
 }

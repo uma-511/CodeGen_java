@@ -4,7 +4,9 @@
 <template>
     <div class="layout-content">
         <div class="layout-content-main">
-            <div class="layout-tools"><#list args as arg>
+            <div class="layout-tools">
+                <#nt>
+                <#list args as arg>
                 <#if arg.type == "Date">
                 <div style="display:inline;">
                     <span>${arg.remark}：</span>
@@ -18,9 +20,11 @@
                 </div>
                 </#if>
                 </#list>
+                <#if (args?size > 0)>
                 <div style="display:inline;">
                     <Button type="primary" size="small" icon="ios-search" @click="query">查询</Button>
                 </div>
+                </#if>
                 <Row style="margin-top: 10px;">
                     <Col span="24">
                     <permissionButton type="primary" size="small" icon="plus" v-on:increment="addItem()" perStr="admin:${name}:add" text="新增"></permissionButton>
@@ -71,6 +75,7 @@
 <script>
     import util from '../../libs/util';
     import permissionButton from '../main_components/button'
+
     export default{
         components:{
             permissionButton
@@ -147,7 +152,6 @@
             };
         },
         created(){
-            util.vue = this;
             this.query();
         },
         methods:{
@@ -178,20 +182,19 @@
                 this.addOrUpdate = 'add';
             },
             delItem(id){
-                this.$Modal.confirm({
-                    title:'操作提示',
-                    content:'确认删除当前数据？',
-                    onOk:()=>{
-                        util.ajax.delete('/${name}/'+id).then(rep =>{
-                            this.$Message.info(rep.code==0 ? '删除数据成功！' : '删除数据失败！');
-                            if(rep.code==0){
-                               if(this.data.length == 1){
-                                   this.page = this.page - 1;
-                               }
-                               this.query();
-                            }
-                        });
+                const _this = this;
+                util.confirm('确认删除当前数据？',function(){
+                    util.ajax.delete('/${name}/'+id).then(rep =>{
+                    if(rep.code==0){
+                        util.success('删除数据成功！');
+                        if(this.data.length == 1){
+                            this.page = this.page - 1;
+                        }
+                        this.query();
+                    }else{
+                        util.error('删除数据失败！');
                     }
+                });
                 });
             },
             pageChange(page){
@@ -213,7 +216,7 @@
                         if(this.addOrUpdate === 'add'){
                             util.ajax.post('/${name}',this.formInline)
                                     .then(rep=>{
-                                        if(rep.code==0){this.$Message.info('保存数据成功！');}
+                                        if(rep.code==0){util.success('保存数据成功！');}
                                         this.query();
                                         this.$refs['form-${name}'].resetFields();
                                         this.isSaveing = false;
@@ -221,7 +224,7 @@
                                     });
                         }else{
                             util.ajax.put('/${name}',this.formInline).then(rep=>{
-                                if(rep.code==0){this.$Message.info('保存数据成功！');}
+                                if(rep.code==0){util.success('保存数据成功！');}
                                 this.query();
                                 this.$refs['form-${name}'].resetFields();
                                 this.isSaveing = false;

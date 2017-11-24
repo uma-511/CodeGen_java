@@ -2,7 +2,7 @@ package ${packageName}.service.impl;
 
 import com.baomidou.mybatisplus.mapper.EntityWrapper;
 import com.baomidou.mybatisplus.plugins.Page;
-import com.warrior.common.service.impl.WarriorBaseServiceImpl;
+import com.warrior.common.service.WarriorBaseServiceImpl;
 import org.springframework.stereotype.Service;
 import ${packageName}.service.${entityName}Service;
 import ${packageName}.dao.${entityName}Dao;

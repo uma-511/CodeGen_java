@@ -16,6 +16,9 @@ public class TableMeta implements Serializable {
 
     @Setter @Getter
     private String primaryKey;
+    
+    @Getter
+    private String primaryKeyType;
 
     @Setter
     @Getter
@@ -30,6 +33,10 @@ public class TableMeta implements Serializable {
             remark = remark.substring(0,remark.indexOf("\n"));
         }
         this.attributeList.add(new Attribute(getType(type),fieldName, name, remark));
+    }
+    
+    public void setPrimaryKeyType(int type){
+        this.primaryKeyType = getType(type);
     }
 
     private String getType(Integer typeKey) {

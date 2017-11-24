@@ -2,6 +2,7 @@ package com.warrior.gen.database;
 
 import com.warrior.gen.model.Config;
 import com.warrior.gen.model.TableMeta;
+import org.apache.commons.lang.StringUtils;
 import org.codehaus.groovy.runtime.GStringImpl;
 
 import java.sql.*;
@@ -52,6 +53,9 @@ public class DBHelper {
         tableMeta.setPrimaryKey(primaryKey);
         while(rst.next()){
             tableMeta.addAttribute(rst.getInt("DATA_TYPE"),rst.getString("COLUMN_NAME"),rst.getString("COLUMN_NAME"),rst.getString("REMARKS"));
+            if(StringUtils.equals(rst.getString("COLUMN_NAME"),primaryKey)){
+                tableMeta.setPrimaryKeyType(rst.getInt("DATA_TYPE"));
+            }
         }
         return tableMeta;
     }

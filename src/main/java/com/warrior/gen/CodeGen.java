@@ -34,22 +34,31 @@ public class CodeGen {
             cfg.setDirectoryForTemplateLoading(new File(rootPath));
             cfg.setDefaultEncoding("UTF-8");
             cfg.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
+            boolean hasPerfix = StringUtils.isBlank(config.getPrefix()) ? false : true;
             if (config.getTableList() != null && config.getTableList().size() > 0){
                 for(TableInfo table : config.getTableList()){
                     if (StringUtils.isBlank(table.getPackageName())){
                         throw new GenException("packageName不能为空！");
                     }
                     TableMeta meta = dbHelper.getTableMeta(table.getTableName());
-                    genEntity(table,meta);
-                    genDao(table);
-                    genMapper(table);
-                    genService(table);
-                    genServiceImpl(table);
-                    genController(table);
+                    String className = FileUtil.getCamelCaseName(
+                            hasPerfix ? table.getTableName().replace(config.getPrefix(),"") : table.getTableName()
+                            ,false);
+                    table.setEntityName(className);
+                    if(table.isGenCode()){
+                        genEntity(table,meta);
+                        genDao(table);
+                        genMapper(table);
+                        genService(table);
+                        genServiceImpl(table);
+                        genController(table,meta);
+                    }
                     if (table.isGenView()){
                         genView(table,meta);
                     }
-                    execScript(table,table.getScriptPath());
+                    if(!StringUtils.isEmpty(table.getScriptPath())){
+                        execScript(table,table.getScriptPath());
+                    }
                 }
             }
         } catch (IOException e) {
@@ -90,7 +99,7 @@ public class CodeGen {
         }
         genFile("view.ftl",new File(dir,"index.vue"),root);
     }
-    private void genController(TableInfo table) throws IOException,TemplateException{
+    private void genController(TableInfo table,TableMeta meta) throws IOException,TemplateException{
         String packagePath = (table.getPackageName() + ".controller").replace(".","/");
         String classPath = getPath(table.getPath()) + File.separator +"src/main/java/"+packagePath;
         String className = table.getEntityName()+"Controller";
@@ -109,6 +118,8 @@ public class CodeGen {
         root.put("remark",table.getRemark());
         root.put("args",table.getAttrs());
         root.put("imports",table.getImportList());
+        root.put("primaryKey",meta.getPrimaryKey());
+        root.put("primaryKeyType",meta.getPrimaryKeyType());
         File dir = new File(classPath);
         if (!dir.exists()){
             dir.mkdirs();
@@ -194,16 +205,12 @@ public class CodeGen {
         genFile("dao.ftl",new File(dir,className+".java"),root);
     }
     private void genEntity(TableInfo tableInfo, TableMeta meta) throws IOException,TemplateException{
-        boolean hasPerfix = StringUtils.isBlank(config.getPrefix()) ? false : true;
         String packagePath = (tableInfo.getPackageName() + ".entity").replace(".","/");
         String classPath = getPath(tableInfo.getPath()) + File.separator +"src/main/java/"+packagePath;
-        String className = FileUtil.getCamelCaseName(
-                hasPerfix ? tableInfo.getTableName().replace(config.getPrefix(),"") : tableInfo.getTableName()
-                ,false);
-        tableInfo.setEntityName(className);
+        boolean hasPerfix = StringUtils.isBlank(config.getPrefix()) ? false : true;
         Map<String,Object> root = new HashMap<>();
         root.put("packageName",tableInfo.getPackageName());
-        root.put("className",className);
+        root.put("className",tableInfo.getEntityName());
         root.put("tableName",tableInfo.getTableName());
         root.put("remark",tableInfo.getRemark());
         root.put("swagger",tableInfo.getSwagger());
@@ -233,7 +240,7 @@ public class CodeGen {
             dir.mkdirs();
         }
 
-        genFile("entity.ftl",new File(dir,className+".java"),root);
+        genFile("entity.ftl",new File(dir,tableInfo.getEntityName()+".java"),root);
     }
     private void genFile(String templateName,File file,Map<String,Object> root) throws IOException,TemplateException{
         Template tpl = cfg.getTemplate(templateName);

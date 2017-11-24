@@ -41,7 +41,10 @@ public class TableInfo implements Serializable {
     private String scriptPath;
 
     @Getter @Setter
-    private boolean genView;
+    private boolean genView = true;
+
+    @Getter @Setter
+    private boolean genCode = true;
 
     @Setter @Getter
     private List<String> importList = new ArrayList<>();

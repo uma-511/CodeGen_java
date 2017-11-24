@@ -13,6 +13,8 @@ import com.baomidou.mybatisplus.plugins.Page;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
+<#else>
+import springfox.documentation.annotations.ApiIgnore; 
 </#if>
 <#list imports as imp>
 import ${imp};
@@ -20,6 +22,8 @@ import ${imp};
 
 <#if swagger>
 @Api(value="${className}",tags = "${remark}",description = "${remark}")
+<#else>
+@ApiIgnore
 </#if>
 @RestController
 @RequestMapping("/${name}")
@@ -31,20 +35,20 @@ public class ${className} extends WarriorBaseController {
     /**
     * 根据id获取${remark}
     *
-    * @param id
+    * @param ${primaryKey} 
     * @return
     */
     @RequiresPermissions("admin:${name}:view")
-    @RequestMapping(value = "/{id}", method = {RequestMethod.GET})
+    @RequestMapping(value = "/{${primaryKey}}", method = {RequestMethod.GET})
     <#if swagger>
     @ApiOperation(value = "获取${remark}",httpMethod = "GET",response = JSONMsg.class)
     </#if>
     public JSONMsg query${entityName}(
         <#if swagger>
-        @ApiParam(name="id",value = "ID",required = true)
+        @ApiParam(name="${primaryKey}",value = "${primaryKey}",required = true)
         </#if>
-        @PathVariable(value = "id") int id) {
-        return buildMsg(${name}Service.selectById(id));
+        @PathVariable(value = "${primaryKey}") ${primaryKeyType} ${primaryKey}) {
+        return buildMsg(${name}Service.selectById(${primaryKey}));
     }
 
     /**
@@ -66,19 +70,19 @@ public class ${className} extends WarriorBaseController {
     /**
     * 删除${remark}
     *
-    * @param id
+    * @param ${primaryKey}
     * @return
     */
     @SysLog("删除${remark}")
     @RequiresPermissions("admin:${name}:del")
-    @RequestMapping(value = "/{id}", method = {RequestMethod.DELETE})
+    @RequestMapping(value = "/{${primaryKey}}", method = {RequestMethod.DELETE})
     <#if swagger>
     @ApiOperation(value = "删除${name}",httpMethod = "DELETE",response = JSONMsg.class)
     </#if>
     public JSONMsg del${entityName}(
-        <#if swagger>@ApiParam(name="id",value = "ID",required = true)</#if>
-        @PathVariable(value = "id") int id) {
-        return buildMsg(${name}Service.deleteById(id));
+        <#if swagger>@ApiParam(name="${primaryKey}",value = "${primaryKey}",required = true)</#if>
+        @PathVariable(value = "${primaryKey}") ${primaryKeyType} ${primaryKey}) {
+        return buildMsg(${name}Service.deleteById(${primaryKey}));
     }
 
     /**
