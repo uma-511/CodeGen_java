@@ -45,17 +45,13 @@ public class CodeGen {
                             hasPerfix ? table.getTableName().replace(config.getPrefix(),"") : table.getTableName()
                             ,false);
                     table.setEntityName(className);
-                    if(table.isGenCode()){
-                        genEntity(table,meta);
-                        genDao(table);
-                        genMapper(table);
-                        genService(table);
-                        genServiceImpl(table);
-                        genController(table,meta);
-                    }
-                    if (table.isGenView()){
-                        genView(table,meta);
-                    }
+                    genEntity(table,meta);
+                    genDao(table);
+                    genMapper(table);
+                    genService(table);
+                    genServiceImpl(table);
+                    genController(table,meta);
+                    genView(table,meta);
                     if(!StringUtils.isEmpty(table.getScriptPath())){
                         execScript(table,table.getScriptPath());
                     }
@@ -93,11 +89,14 @@ public class CodeGen {
             attr.setEdit(table.isEdit(attr.getFieldName()));
         }
         root.put("attrs",meta.getAttributeList());
-        File dir = new File(filePath);
-        if (!dir.exists()){
-            dir.mkdirs();
+
+        if(table.isGenView()){
+            File dir = new File(filePath);
+            if (!dir.exists()){
+                dir.mkdirs();
+            }
+            genFile("view.ftl",new File(dir,"index.vue"),root);
         }
-        genFile("view.ftl",new File(dir,"index.vue"),root);
     }
     private void genController(TableInfo table,TableMeta meta) throws IOException,TemplateException{
         String packagePath = (table.getPackageName() + ".controller").replace(".","/");
@@ -120,11 +119,14 @@ public class CodeGen {
         root.put("imports",table.getImportList());
         root.put("primaryKey",meta.getPrimaryKey());
         root.put("primaryKeyType",meta.getPrimaryKeyType());
-        File dir = new File(classPath);
-        if (!dir.exists()){
-            dir.mkdirs();
+
+        if(table.isGenCode()){
+            File dir = new File(classPath);
+            if (!dir.exists()){
+                dir.mkdirs();
+            }
+            genFile("controller.ftl",new File(dir,className+".java"),root);
         }
-        genFile("controller.ftl",new File(dir,className+".java"),root);
     }
     private void genServiceImpl(TableInfo table) throws IOException,TemplateException{
         String packagePath = (table.getPackageName() + ".service.impl").replace(".","/");
@@ -145,11 +147,13 @@ public class CodeGen {
         root.put("args",table.getAttrs());
         root.put("imports",table.getImportList());
 
-        File dir = new File(classPath);
-        if (!dir.exists()){
-            dir.mkdirs();
+        if(table.isGenCode()){
+            File dir = new File(classPath);
+            if (!dir.exists()){
+                dir.mkdirs();
+            }
+            genFile("serviceImpl.ftl",new File(dir,className+".java"),root);
         }
-        genFile("serviceImpl.ftl",new File(dir,className+".java"),root);
     }
     private void genService(TableInfo table) throws IOException,TemplateException{
         String packagePath = (table.getPackageName() + ".service").replace(".","/");
@@ -169,11 +173,13 @@ public class CodeGen {
         root.put("args",table.getAttrs());
         root.put("imports",table.getImportList());
 
-        File dir = new File(classPath);
-        if (!dir.exists()){
-            dir.mkdirs();
+        if(table.isGenCode()){
+            File dir = new File(classPath);
+            if (!dir.exists()){
+                dir.mkdirs();
+            }
+            genFile("service.ftl",new File(dir,className+".java"),root);
         }
-        genFile("service.ftl",new File(dir,className+".java"),root);
     }
     private void genMapper(TableInfo tableInfo) throws IOException,TemplateException {
         String packagePath = (tableInfo.getPackageName() + ".mapper").replace(".","/");
@@ -183,11 +189,14 @@ public class CodeGen {
         root.put("packageName",tableInfo.getPackageName());
         root.put("entityName",tableInfo.getEntityName());
         root.put("tableName",tableInfo.getTableName());
-        File dir = new File(classPath);
-        if (!dir.exists()){
-            dir.mkdirs();
+
+        if(tableInfo.isGenCode()){
+            File dir = new File(classPath);
+            if (!dir.exists()){
+                dir.mkdirs();
+            }
+            genFile("mapper.ftl",new File(dir,className),root);
         }
-        genFile("mapper.ftl",new File(dir,className),root);
     }
     private void genDao(TableInfo tableInfo) throws IOException,TemplateException{
         String packagePath = (tableInfo.getPackageName() + ".dao").replace(".","/");
@@ -198,11 +207,13 @@ public class CodeGen {
         root.put("entityName",tableInfo.getEntityName());
         root.put("className",className);
 
-        File dir = new File(classPath);
-        if (!dir.exists()){
-            dir.mkdirs();
+        if(tableInfo.isGenCode()){
+            File dir = new File(classPath);
+            if (!dir.exists()){
+                dir.mkdirs();
+            }
+            genFile("dao.ftl",new File(dir,className+".java"),root);
         }
-        genFile("dao.ftl",new File(dir,className+".java"),root);
     }
     private void genEntity(TableInfo tableInfo, TableMeta meta) throws IOException,TemplateException{
         String packagePath = (tableInfo.getPackageName() + ".entity").replace(".","/");
@@ -235,12 +246,13 @@ public class CodeGen {
             attr.setName(temp);
         }
         root.put("attrs",attrs);
-        File dir = new File(classPath);
-        if (!dir.exists()){
-            dir.mkdirs();
+        if(tableInfo.isGenCode()){
+            File dir = new File(classPath);
+            if (!dir.exists()){
+                dir.mkdirs();
+            }
+            genFile("entity.ftl",new File(dir,tableInfo.getEntityName()+".java"),root);
         }
-
-        genFile("entity.ftl",new File(dir,tableInfo.getEntityName()+".java"),root);
     }
     private void genFile(String templateName,File file,Map<String,Object> root) throws IOException,TemplateException{
         Template tpl = cfg.getTemplate(templateName);
