@@ -187,10 +187,10 @@
                     util.ajax.delete('/${name}/'+id).then(rep =>{
                     if(rep.code==0){
                         util.success('删除数据成功！');
-                        if(this.data.length == 1){
-                            this.page = this.page - 1;
+                        if(_this.data.length == 1){
+                            _this.page = this.page - 1;
                         }
-                        this.query();
+                        _this.query();
                     }else{
                         util.error('删除数据失败！');
                     }
